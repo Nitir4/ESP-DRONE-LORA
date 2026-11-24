@@ -34,7 +34,8 @@ static uint8_t pending[LR_MAX_FRAME];static size_t pending_size;
 static int8_t measured_roll,measured_pitch,rssi,snr_q;
 static bool pause_tx;
 static uint32_t pause_until,override_until;
-static lr_control_t override_control;
+static lr_full_control_t override_control;
+static bool override_is_command;
 static uint16_t tx_pair=LORA_PAIR_ID;
 static int sequence_mode; // 0 normal, 1 repeat, 2 out of order; bench diagnostics only.
 static lr_gps_t remote_gps;
@@ -83,10 +84,10 @@ static void init_inputs(void)
     printf("CENTER %d %d %d %d\n",center[0],center[1],center[2],center[3]);
 }
 
-static lr_control_t joystick_control(uint32_t now)
+static lr_full_control_t joystick_control(uint32_t now)
 {
     read_axes();
-    int throttle=(int)lrintf(fmaxf(0,axis(3))*255);
+    int throttle=(int)lrintf(fmaxf(0,axis(3))*60000);
     input_throttle=throttle;
     bool button=!gpio_get_level(CONFIG_BOARD_CTRL_ARM_SW),kill=!gpio_get_level(CONFIG_BOARD_CTRL_STOP_SW);
     arm_button=button;stop_button=kill;
@@ -111,18 +112,29 @@ static lr_control_t joystick_control(uint32_t now)
     else if(!button)arm_state="hold U1 button to arm";
     else if(arm_consumed)arm_state="release U1 then try again";
     else arm_state="holding U1 (need 1000 ms)";
-    lr_control_t c={.roll=(int8_t)lrintf(axis(0)*120),
-        .pitch=(int8_t)lrintf(-axis(1)*120),.yaw=(int8_t)lrintf(axis(2)*90),
-        // Repeat zero-throttle ARM requests until an accepted status reply
-        // confirms arming. A lost first ARM frame cannot block arming forever.
-        .throttle=armed && peer_armed && have_status && now-last_status<1000?throttle:0,
-        .flags=(armed?LR_ARM:0)|(kill?LR_KILL:0)};
+    lr_full_control_t c={.flags=(armed?LR_ARM:0)|(kill?LR_KILL:0)};
+    // Preserve original float32 setpoints and uint16 thrust: no int8/uint8 quantization.
+    uint16_t thrust=armed && peer_armed && have_status && now-last_status<1000?throttle:0;
+    lr_crtp_pack(c.raw,axis(0)*30.f,-axis(1)*30.f,axis(2)*180.f,thrust);
     return c;
 }
 
 static void process_line(char *line)
 {
-    if(!strcmp(line,"LIVE")){override_until=0;pause_tx=false;sequence_mode=0;tx_pair=LORA_PAIR_ID;armed=false;puts("LIVE");return;}
+    if(!strcmp(line,"LIVE")){override_until=0;override_is_command=false;pause_tx=false;sequence_mode=0;tx_pair=LORA_PAIR_ID;armed=false;puts("LIVE");return;}
+    if(!strncmp(line,"COMMAND ",8)) {
+        uint8_t raw[LR_CRTP_COMMAND_SIZE];
+        if(strlen(line+8)!=2*LR_CRTP_COMMAND_SIZE){puts("ERR COMMAND requires 15 CRTP bytes");return;}
+        for(unsigned i=0;i<LR_CRTP_COMMAND_SIZE;i++){
+            char hex[3]={line[8+2*i],line[9+2*i],0};char *end;
+            long value=strtol(hex,&end,16);if(*end || value<0 || value>255){puts("ERR HEX");return;}raw[i]=value;
+        }
+        float r,p,y;uint16_t t;
+        if(!lr_crtp_read(raw,&r,&p,&y,&t)){puts("ERR COMMAND invalid CRTP setpoint");return;}
+        if(!armed || !peer_armed || !have_status || millis()-last_status>=1000 || stop_button){puts("ERR COMMAND requires confirmed arming");return;}
+        override_is_command=true;override_control=(lr_full_control_t){.flags=LR_ARM};memcpy(override_control.raw,raw,sizeof(raw));
+        override_until=millis()+200;puts("COMMAND_OK");return;
+    }
     if(!strncmp(line,"CRTP ",5)) {
         size_t len=strlen(line+5)/2;
         if(len<1 || len>31 || strlen(line+5)!=len*2){puts("ERR CRTP length");return;}
@@ -141,12 +153,34 @@ static void process_line(char *line)
     }
     if(!strncmp(line,"PAIR ",5)){tx_pair=strtoul(line+5,NULL,16);puts("PAIR_SET");return;}
     if(!strncmp(line,"SEQ ",4)){sequence_mode=atoi(line+4);puts("SEQ_SET");return;}
+    if(!strncmp(line,"SETCRTP ",8)) {
+        char hex[2*LR_CRTP_COMMAND_SIZE+1];unsigned flags,ms;
+        if(sscanf(line+8,"%30s %u %u",hex,&flags,&ms)!=3 ||
+           strlen(hex)!=2*LR_CRTP_COMMAND_SIZE || flags>3 || ms<1 || ms>10000){puts("ERR SETCRTP range");return;}
+        lr_full_control_t c={.flags=flags};
+        for(unsigned i=0;i<LR_CRTP_COMMAND_SIZE;i++){
+            char byte[3]={hex[2*i],hex[2*i+1],0};char *end;
+            long value=strtol(byte,&end,16);
+            if(*end || value<0 || value>255){puts("ERR HEX");return;}c.raw[i]=value;
+        }
+        float r,p,y;uint16_t t;
+        if(!lr_crtp_read(c.raw,&r,&p,&y,&t)){puts("ERR SETCRTP invalid packet");return;}
+        override_is_command=false;override_control=c;override_until=millis()+ms;puts("SETCRTP_OK");return;
+    }
+    if(!strncmp(line,"SETPOINT ",9)) {
+        float r,p,y;unsigned t,f,ms;
+        if(sscanf(line+9,"%f %f %f %u %u %u",&r,&p,&y,&t,&f,&ms)!=6 ||
+           !isfinite(r) || !isfinite(p) || !isfinite(y) || t>65535 || f>3 || ms<1 || ms>10000){puts("ERR SETPOINT range");return;}
+        override_is_command=false;override_control=(lr_full_control_t){.flags=f};lr_crtp_pack(override_control.raw,r,p,y,t);
+        override_until=millis()+ms;puts("SETPOINT_OK");return;
+    }
     if(!strncmp(line,"SET ",4)) {
         int r,p,y,t,f,ms;
         if(sscanf(line+4,"%d %d %d %d %d %d",&r,&p,&y,&t,&f,&ms)!=6 ||
            r< -127 || r>127 || p< -127 || p>127 || y< -127 || y>127 ||
            t<0 || t>255 || f<0 || f>3 || ms<1 || ms>10000){puts("ERR SET range");return;}
-        override_control=(lr_control_t){.roll=r,.pitch=p,.yaw=y,.throttle=t,.flags=f};
+        override_is_command=false;override_control=(lr_full_control_t){.flags=f};
+        lr_crtp_pack(override_control.raw,r*.25f,p*.25f,y*2.f,(uint16_t)(((uint32_t)t*60000u+127u)/255u));
         override_until=millis()+ms;puts("SET_OK");return;
     }
     puts("ERR command");
@@ -223,7 +257,7 @@ void app_main(void)
     init_inputs();
     bool radio_ok=lr_radio_init()==ESP_OK;status_led_radio(radio_ok);
     if(!radio_ok){puts("CONTROLLER_ERROR radio unavailable");for(;;)vTaskDelay(pdMS_TO_TICKS(1000));}
-    printf("CONTROLLER_READY pair=%04x frame=8 period_ms=%u\n",LORA_PAIR_ID,LORA_FRAME_MS);
+    printf("CONTROLLER_READY pair=%04x frame=%u crtp=15 period_ms=%u\n",LORA_PAIR_ID,LR_FULL_CONTROL_SIZE,LORA_FRAME_MS);
     uint32_t next=millis(),report=0;uint8_t sent_seq=0;
     for(;;) {
         uint32_t now=millis();serial_poll();poll_reply(now);
@@ -240,28 +274,40 @@ void app_main(void)
         status_led_health(false,false,false,false,false,true,
             armed && have_status && now-last_status<1000 && peer_armed);
 #endif
+        // An external command stream that stops must disarm, never fall back to an armed stick command.
+        if(override_is_command && override_until && (int32_t)(now-override_until)>=0){
+            armed=false;override_until=0;override_is_command=false;
+        }
         if(pause_tx && (int32_t)(now-pause_until)>=0){pause_tx=false;armed=false;override_until=0;}
         if((int32_t)(now-next)>=0) {
             next=now+LORA_FRAME_MS+(esp_random()%4); // slight jitter breaks persistent collisions
-            lr_control_t c=joystick_control(now);
+            lr_full_control_t c=joystick_control(now);
             bool injected=(int32_t)(override_until-now)>0;
-            if(injected)c=override_control;
+            if(injected){
+                c=override_control;
+                // The physical STOP and lost return link also cancel diagnostic/raw overrides.
+                if(stop_button || !have_reply || now-last_reply>=1000 ||
+                   (override_is_command && (!armed || !peer_armed || !have_status || now-last_status>=1000))){
+                    c.flags=LR_KILL;lr_crtp_pack(c.raw,0,0,0,0);override_until=0;injected=false;
+                }
+            }
             if(!pause_tx) {
                 bool want_reply=(tx_count%4)==0;
                 c.flags|=want_reply?LR_REPLY:0;
                 if(sequence_mode==1)c.seq=sent_seq;
                 else if(sequence_mode==2)c.seq=(uint8_t)(sent_seq-1);
                 else c.seq=sequence++;
-                uint8_t data[8];lr_encode_control(data,tx_pair,&c);
+                uint8_t data[LR_FULL_CONTROL_SIZE];lr_encode_full_control(data,tx_pair,&c);
                 if(clear_channel()) {
                     int64_t tx_start_us=esp_timer_get_time();
-                    if(lr_radio_send(data,8)) {
+                    if(lr_radio_send(data,sizeof(data))) {
                         tx_count++;sent_seq=c.seq;
                         if(want_reply){reply_sequence=c.seq;reply_tx_us=tx_start_us;}
-                        uint8_t axes=(c.roll?STATUS_ROLL:0)|(c.pitch?STATUS_PITCH:0)|
-                            (c.yaw?STATUS_YAW:0)|(c.throttle?STATUS_THROTTLE:0);
+                        float r,p,y;uint16_t thrust;lr_crtp_read(c.raw,&r,&p,&y,&thrust);
+                        uint8_t axes=(r?STATUS_ROLL:0)|(p?STATUS_PITCH:0)|
+                            (y?STATUS_YAW:0)|(thrust?STATUS_THROTTLE:0);
                         status_led_control_tx(millis(),axes);
-                        printf("TX8 %u ",(unsigned)now);for(int i=0;i<8;i++)printf("%02x",data[i]);puts("");
+                        printf("TX19 %u ",(unsigned)now);for(unsigned i=0;i<sizeof(data);i++)printf("%02x",data[i]);puts("");
                     }
                     // Optional USB CRTP bridge uses alternate disarmed frames,
                     // preserving a bounded gap in the control stream.
@@ -281,7 +327,7 @@ void app_main(void)
             status_output_t leds=status_led_snapshot(now);
             printf("BOARD_STATUS {\"ms\":%lu,\"led_mask\":%u,\"fault_code\":%u,\"axis_code\":%u,\"gps_received\":%lu}\n",
                 (unsigned long)now,leds.mask,leds.fault,leds.axis,(unsigned long)gps_rx_count);
-            printf("LORA_TX {\"ms\":%lu,\"sent\":%lu,\"replies\":%lu,\"busy\":%lu,\"armed\":%d,\"bench\":%d,\"linked\":%d,\"mpu_roll\":%d,\"mpu_pitch\":%d,\"rssi\":%d,\"snr_q\":%d,\"arm_button\":%d,\"stop_button\":%d,\"input_throttle\":%d,\"hold_ms\":%lu,\"arm_state\":\"%s\",\"raw\":[%d,%d,%d,%d],\"center\":[%d,%d,%d,%d],\"receiver_armed\":%d,\"receiver_failsafe\":%d,\"receiver_status_fresh\":%d}\n",
+            printf("LORA_TX {\"ms\":%lu,\"sent\":%lu,\"replies\":%lu,\"busy\":%lu,\"armed\":%d,\"bench\":%d,\"linked\":%d,\"mpu_roll\":%d,\"mpu_pitch\":%d,\"rssi\":%d,\"snr_q\":%d,\"arm_button\":%d,\"stop_button\":%d,\"input_throttle\":%d,\"control_bytes\":19,\"hold_ms\":%lu,\"arm_state\":\"%s\",\"raw\":[%d,%d,%d,%d],\"center\":[%d,%d,%d,%d],\"receiver_armed\":%d,\"receiver_failsafe\":%d,\"receiver_status_fresh\":%d}\n",
                 (unsigned long)now,(unsigned long)tx_count,(unsigned long)rx_count,(unsigned long)busy_count,
                 armed,bench_peer,have_reply && now-last_reply<1000,measured_roll,measured_pitch,rssi,snr_q,
                 arm_button,stop_button,input_throttle,(unsigned long)(arm_button?now-hold_ms:0),arm_state,

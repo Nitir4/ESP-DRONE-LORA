@@ -29,7 +29,10 @@ static uint16_t last_thrust;
 static uint8_t last_seq;
 static logVarId_t roll_id,pitch_id,age_id;
 static logVarId_t set_roll_id,set_pitch_id,set_yaw_id,set_thrust_id;
-static lr_control_t last_input;
+static float input_roll,input_pitch,input_yaw;
+static uint16_t input_thrust;
+static uint8_t input_flags,input_bytes;
+static uint8_t last_forwarded[LR_CRTP_COMMAND_SIZE];
 static uint32_t gps_tx_count,status_tx_count,last_gps_tx,last_status_tx;
 #if defined(CONFIG_GPS_ENABLED) && defined(CONFIG_GPS_TELEMETRY_ENABLED)
 static uint8_t gps_return_enabled=1;
@@ -56,6 +59,18 @@ static void queue_control(const lr_control_t *c,bool armed)
     memcpy(packet.data,&roll,4);memcpy(packet.data+4,&pitch,4);
     memcpy(packet.data+8,&yaw,4);memcpy(packet.data+12,&thrust,2);
     last_roll=roll;last_pitch=pitch;last_yaw=yaw;last_thrust=thrust;
+    memcpy(last_forwarded,packet.raw,LR_CRTP_COMMAND_SIZE);
+    xQueueOverwrite(controls,&packet);
+}
+
+
+static void queue_full_control(const lr_full_control_t *c,bool armed)
+{
+    CRTPPacket packet={.size=LR_CRTP_COMMAND_SIZE-1};
+    lr_full_control_forward(packet.raw,c,armed);
+    memcpy(last_forwarded,packet.raw,LR_CRTP_COMMAND_SIZE);
+    // Read only for diagnostics; packet.raw itself is queued byte-for-byte.
+    lr_crtp_read(packet.raw,&last_roll,&last_pitch,&last_yaw,&last_thrust);
     xQueueOverwrite(controls,&packet);
 }
 
@@ -149,7 +164,9 @@ static void radio_task(void *arg)
                 if(result==LR_ACCEPT)result=lr_guard_accept(&guard,&c,now);
                 if(result==LR_ACCEPT) {
                     if(!sensorsMpu6050Health())guard.armed=false;
-                    last_input=c;
+                    input_roll=c.roll*.25f;input_pitch=c.pitch*.25f;input_yaw=c.yaw*2.f;
+                    input_thrust=(uint16_t)(((uint32_t)c.throttle*60000u+127u)/255u);
+                    input_flags=c.flags;input_bytes=LR_CONTROL_SIZE;
                     accepted++;last_seq=c.seq;last_rssi=rssi;last_snr=snr;
                     peer_seen=true;peer_ms=now;systemSetArmed(guard.armed);
                     queue_control(&c,guard.armed);
@@ -158,9 +175,25 @@ static void radio_task(void *arg)
                     status_led_control_rx(now,axes);
                     if(c.flags&LR_REPLY)reply(c.seq);
                 }else if(result==LR_STALE)stale++;else rejected++;
+            }else if((data[3]&0xf0)==LR_FULL_CONTROL) {
+                lr_full_control_t c;
+                lr_result_t result=lr_decode_full_control(data,n,LORA_PAIR_ID,&c);
+                if(result==LR_ACCEPT)result=lr_guard_accept_full(&guard,&c,now);
+                if(result==LR_ACCEPT){
+                    if(!sensorsMpu6050Health())guard.armed=false;
+                    lr_crtp_read(c.raw,&input_roll,&input_pitch,&input_yaw,&input_thrust);
+                    input_flags=c.flags;input_bytes=LR_FULL_CONTROL_SIZE;
+                    accepted++;last_seq=c.seq;last_rssi=rssi;last_snr=snr;
+                    peer_seen=true;peer_ms=now;systemSetArmed(guard.armed);
+                    queue_full_control(&c,guard.armed);
+                    uint8_t axes=(input_roll?STATUS_ROLL:0)|(input_pitch?STATUS_PITCH:0)|
+                        (input_yaw?STATUS_YAW:0)|(input_thrust?STATUS_THROTTLE:0);
+                    status_led_control_rx(now,axes);
+                    if(c.flags&LR_REPLY)reply(c.seq);
+                }else if(result==LR_STALE)stale++;else rejected++;
             }else if(data[3]==LR_CRTP && n>=5 && n<=35) {
                 uint8_t port=data[4]>>4;
-                // Control/arming always uses the compact guarded channel.
+                // Control/arming always uses a guarded control channel, never the service tunnel.
                 if(port==3 || port==7 || port==8){rejected++;}
                 else {
                     tunnel_rx++;
@@ -172,9 +205,12 @@ static void radio_task(void *arg)
         }
         if(now-report_ms>=1000) {
             report_ms=now;
+            printf("CRTP_CONTROL %lu %u %u ",(unsigned long)now,last_seq,input_bytes);
+            for(unsigned i=0;i<LR_CRTP_COMMAND_SIZE;i++){printf("%02x",last_forwarded[i]);}
+            puts("");
             printf("LINK_STATS {\"ms\":%lu,\"gps_sent\":%lu,\"status_sent\":%lu,\"gps_return\":%d,\"mpu_ok\":%d}\n",
                 (unsigned long)now,(unsigned long)gps_tx_count,(unsigned long)status_tx_count,gps_return_enabled,sensorsMpu6050Health());
-            printf("LORA_RX {\"ms\":%lu,\"ok\":%lu,\"wrong_pair\":%lu,\"bad\":%lu,\"crc\":%lu,\"stale\":%lu,\"timeouts\":%lu,\"tx\":%lu,\"drop\":%lu,\"tunnel_rx\":%lu,\"tunnel_tx\":%lu,\"armed\":%d,\"seq\":%u,\"age\":%lu,\"roll\":%.2f,\"pitch\":%.2f,\"yaw\":%.2f,\"thrust\":%u,\"mpu_roll\":%.2f,\"mpu_pitch\":%.2f,\"rssi\":%d,\"snr_q\":%d,\"input_roll\":%.2f,\"input_pitch\":%.2f,\"input_yaw\":%.2f,\"input_throttle\":%u,\"input_flags\":%u,\"set_roll\":%.2f,\"set_pitch\":%.2f,\"set_yaw\":%.2f,\"set_thrust\":%.2f}\n",
+            printf("LORA_RX {\"ms\":%lu,\"ok\":%lu,\"wrong_pair\":%lu,\"bad\":%lu,\"crc\":%lu,\"stale\":%lu,\"timeouts\":%lu,\"tx\":%lu,\"drop\":%lu,\"tunnel_rx\":%lu,\"tunnel_tx\":%lu,\"armed\":%d,\"seq\":%u,\"age\":%lu,\"roll\":%.9g,\"pitch\":%.9g,\"yaw\":%.9g,\"thrust\":%u,\"mpu_roll\":%.9g,\"mpu_pitch\":%.9g,\"rssi\":%d,\"snr_q\":%d,\"input_roll\":%.9g,\"input_pitch\":%.9g,\"input_yaw\":%.9g,\"input_throttle\":%u,\"input_flags\":%u,\"control_bytes\":%u,\"set_roll\":%.9g,\"set_pitch\":%.9g,\"set_yaw\":%.9g,\"set_thrust\":%.9g}\n",
                 (unsigned long)now,(unsigned long)accepted,(unsigned long)wrong_pair,
                 (unsigned long)rejected,(unsigned long)crc_bad,(unsigned long)stale,
                 (unsigned long)timeouts,(unsigned long)tx_count,(unsigned long)tx_dropped,
@@ -182,7 +218,7 @@ static void radio_task(void *arg)
                 guard.armed,last_seq,(unsigned long)(now-guard.last_ms),last_roll,last_pitch,last_yaw,last_thrust,
                 LOG_VARID_IS_VALID(roll_id)?logGetFloat(roll_id):0,
                 LOG_VARID_IS_VALID(pitch_id)?logGetFloat(pitch_id):0,last_rssi,last_snr,
-                last_input.roll*.25f,last_input.pitch*.25f,last_input.yaw*2.f,last_input.throttle,last_input.flags,
+                input_roll,input_pitch,input_yaw,input_thrust,input_flags,input_bytes,
                 LOG_VARID_IS_VALID(set_roll_id)?logGetFloat(set_roll_id):0,
                 LOG_VARID_IS_VALID(set_pitch_id)?logGetFloat(set_pitch_id):0,
                 LOG_VARID_IS_VALID(set_yaw_id)?logGetFloat(set_yaw_id):0,
@@ -203,7 +239,7 @@ static int send_packet(CRTPPacket *p)
 }
 static int receive_packet(CRTPPacket *p)
 {
-    // Compact commands always take priority over optional CRTP traffic.
+    // Control commands always take priority over optional CRTP traffic.
     for(unsigned i=0;i<10;i++) {
         if(xQueueReceive(controls,p,0)==pdTRUE)return 0;
         if(xQueueReceive(incoming,p,0)==pdTRUE)return 0;

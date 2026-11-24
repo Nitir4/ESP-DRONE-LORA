@@ -6,6 +6,8 @@ from check_pins import check
 ROOT = Path(__file__).resolve().parent.parent
 variant = json.loads((ROOT/'variant.json').read_text())
 expected = variant['gps_support']
+assert variant['control_bytes'] == 19
+assert variant['original_crtp_bytes'] == 15
 
 def enabled(text, key):
     return 'CONFIG_'+key+'=y' in text.splitlines()
@@ -23,4 +25,4 @@ for role, path in [('receiver', ROOT/'sdkconfig'), ('controller', ROOT/'controll
         assert ('gps_monitor.c' in sources) == expected
         assert ('gps_disabled.c' in sources) != expected
     print(f'PASS: {role}, {len(pins)} GPIO assignments, expected GPS={expected}')
-print('PASS:', variant['name'], '8-byte control contract; no-motor receiver; matching feature profiles')
+print('PASS:', variant['name'], '19-byte full-CRTP control contract; no-motor receiver; matching feature profiles')

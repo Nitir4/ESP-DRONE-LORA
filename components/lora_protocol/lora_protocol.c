@@ -1,7 +1,61 @@
 #include "lora_protocol.h"
+#include <float.h>
+#include <math.h>
+#include <string.h>
+
+_Static_assert(sizeof(float)==4 && FLT_RADIX==2 && FLT_MANT_DIG==24 && FLT_MAX_EXP==128,
+               "CRTP requires IEEE-754 binary32 floats");
 
 static void put32(uint8_t *p,uint32_t v){for(int i=0;i<4;i++)p[i]=(uint8_t)(v>>(8*i));}
 static uint32_t get32(const uint8_t *p){return (uint32_t)p[0]|((uint32_t)p[1]<<8)|((uint32_t)p[2]<<16)|((uint32_t)p[3]<<24);}
+
+void lr_crtp_pack(uint8_t raw[LR_CRTP_COMMAND_SIZE],float roll,float pitch,float yaw,uint16_t thrust)
+{
+    raw[0]=0x30; // CRTP port 3, channel 0, matching ESP-Drone's CRTP_HEADER.
+    float values[]={roll,pitch,yaw};
+    for(unsigned i=0;i<3;i++){uint32_t bits;memcpy(&bits,&values[i],4);put32(raw+1+i*4,bits);}
+    raw[13]=(uint8_t)thrust;raw[14]=(uint8_t)(thrust>>8);
+}
+
+bool lr_crtp_read(const uint8_t raw[LR_CRTP_COMMAND_SIZE],float *roll,float *pitch,float *yaw,uint16_t *thrust)
+{
+    // Preserve reserved header bits; cflib may set them to 1 (0x3c).
+    if((raw[0]&0xf3)!=0x30)return false;
+    float values[3];
+    for(unsigned i=0;i<3;i++){uint32_t bits=get32(raw+1+i*4);memcpy(&values[i],&bits,4);if(!isfinite(values[i]))return false;}
+    *roll=values[0];*pitch=values[1];*yaw=values[2];
+    *thrust=(uint16_t)raw[13]|((uint16_t)raw[14]<<8);
+    return true;
+}
+
+void lr_encode_full_control(uint8_t out[LR_FULL_CONTROL_SIZE],uint16_t pair,const lr_full_control_t *c)
+{lr_header(out,pair,c->seq,LR_FULL_CONTROL|c->flags);memcpy(out+4,c->raw,LR_CRTP_COMMAND_SIZE);}
+
+lr_result_t lr_decode_full_control(const uint8_t *data,size_t size,uint16_t pair,lr_full_control_t *out)
+{
+    if(size!=LR_FULL_CONTROL_SIZE || (data[3]&0xf8)!=LR_FULL_CONTROL)return LR_BAD_FRAME;
+    if(!lr_pair_matches(data,size,pair))return LR_WRONG_PAIR;
+    float r,p,y;uint16_t t;
+    if(!lr_crtp_read(data+4,&r,&p,&y,&t))return LR_BAD_FRAME;
+    memcpy(out->raw,data+4,LR_CRTP_COMMAND_SIZE);out->seq=data[2];out->flags=data[3]&7;
+    return LR_ACCEPT;
+}
+
+void lr_full_control_forward(uint8_t raw[LR_CRTP_COMMAND_SIZE],const lr_full_control_t *c,bool armed)
+{
+    memcpy(raw,c->raw,LR_CRTP_COMMAND_SIZE);
+    // Protocol preservation does not bypass arming/kill; only active controls pass unchanged.
+    if(!armed || (c->flags&LR_KILL))memset(raw+1,0,LR_CRTP_COMMAND_SIZE-1);
+}
+
+lr_result_t lr_guard_accept_full(lr_guard_t *guard,const lr_full_control_t *c,uint32_t now_ms)
+{
+    float r,p,y;uint16_t thrust;
+    if(!lr_crtp_read(c->raw,&r,&p,&y,&thrust))return LR_BAD_FRAME;
+    // Share the existing guard using a zero/nonzero predicate, never quantize the actual thrust.
+    lr_control_t gate={.seq=c->seq,.flags=c->flags,.throttle=thrust!=0};
+    return lr_guard_accept(guard,&gate,now_ms);
+}
 
 void lr_encode_gps(uint8_t out[LR_GPS_SIZE],uint16_t pair,const lr_gps_t *g)
 {

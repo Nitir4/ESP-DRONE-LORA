@@ -80,6 +80,10 @@ class Bench:
         r=self.latest();assert r['armed']==1 and r['roll']==8 and r['thrust']==12000,r
         self.phase='pitch_yaw';self.cmd('SET 0 -24 15 51 1 2500');time.sleep(1.4)
         r=self.latest();assert r['pitch']==-6 and r['yaw']==30 and r['thrust']==12000,r
+        self.phase='full_precision';self.cmd('SETPOINT 8.123456 -6.234567 30.345678 12345 1 2500');time.sleep(1.4)
+        r=self.latest()
+        assert abs(r['set_roll']-8.123456)<1e-5 and abs(r['set_pitch']+6.234567)<1e-5
+        assert abs(r['set_yaw']+30.345678)<1e-5 and r['set_thrust']==12345,r
         self.phase='kill';self.cmd('SET 0 0 0 255 3 1500');time.sleep(1.2)
         r=self.latest();assert not r['armed'] and r['thrust']==0,r
         self.cmd('LIVE');self.phase_wait('recovered',1.5)
@@ -97,13 +101,13 @@ class Bench:
         self.cmd('LIVE');self.phase_wait('final_live_disarmed',3)
         r=self.latest();assert not r['armed'] and r['thrust']==0
         baseline=self.samples('baseline')
-        tx=[r for r in self.rows if r['phase']=='baseline' and r['line'].startswith('TX8 ')]
+        tx=[r for r in self.rows if r['phase']=='baseline' and r['line'].startswith('TX19 ')]
         periods=[(b['t']-a['t'])*1000 for a,b in zip(tx,tx[1:])]
         import statistics
         summary={'completed':True,'final_receiver':r,'baseline_command_frames':len(tx),
             'baseline_interval_ms':{'median':statistics.median(periods),'min':min(periods),'max':max(periods)},
             'baseline_receiver_samples':baseline,'checks':['bidirectional link','CRTP echo','platform query',
-            'zero-throttle arm','roll/thrust expansion','pitch/yaw expansion','kill','wrong pair',
+            'zero-throttle arm','original CRTP roll/thrust','pitch/yaw','full float32 precision and uint16 thrust','kill','wrong pair',
             'duplicate rejection','old sequence rejection','loss disarm/zero','recovery stays disarmed']}
         (ROOT/'hardware-summary.json').write_text(json.dumps(summary,indent=2))
         print(json.dumps(summary,indent=2),flush=True)

@@ -6,6 +6,7 @@ import tempfile
 from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 cases = [
+    ('full-control', 'tests/full_control_test.c', 'components/lora_protocol/lora_protocol.c', 'components/lora_protocol/include'),
     ('control', 'tests/lora_protocol_test.c', 'components/lora_protocol/lora_protocol.c', 'components/lora_protocol/include'),
     ('gps-codec', 'tests/gps_frame_test.c', 'components/lora_protocol/lora_protocol.c', 'components/lora_protocol/include'),
     ('gps-parser', 'tests/gps_nmea_test.c', 'components/gps/gps_nmea.c', 'components/gps/include'),
@@ -17,4 +18,4 @@ with tempfile.TemporaryDirectory(prefix='esp-drone-tests-') as folder:
         subprocess.run([os.environ.get('CC', 'cc'), '-std=c11', '-Wall', '-Wextra', '-Werror',
                         '-fsanitize=address,undefined', '-I'+inc, test, source, '-lm', '-o', exe], cwd=ROOT, check=True)
         subprocess.run([exe], cwd=ROOT, check=True)
-print('PASS: four portable suites; GPS parser/codec tests also retained in the no-GPS source for regression coverage.')
+print('PASS: five portable suites; GPS parser/codec tests also retained in the no-GPS source for regression coverage.')

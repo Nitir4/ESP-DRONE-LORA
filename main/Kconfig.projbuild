@@ -38,7 +38,7 @@ menu "ESPDrone Config"
         default TRANSPORT_NONE
 
         config TRANSPORT_LORA
-            bool "paired SX127x LoRa (8-byte control + CRTP tunnel)"
+            bool "paired SX127x LoRa (original CRTP control + service tunnel)"
             depends on IDF_TARGET_ESP32
 
         config TRANSPORT_NATIVE_WIFI
