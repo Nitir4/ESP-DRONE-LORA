@@ -1,0 +1,152 @@
+{
+  "completed": true,
+  "capture": "logs/full-crtp-20261125-020424",
+  "flashed": true,
+  "physical_motor_outputs": false,
+  "gps_return_off": {
+    "control_bytes": 19,
+    "original_crtp_bytes": 15,
+    "control_hz": 19.410171531748418,
+    "control_interval_ms": {
+      "count": 387,
+      "min": 50,
+      "median": 51,
+      "p95": 53,
+      "max": 53
+    },
+    "status_rtt_ms": {
+      "count": 94,
+      "min": 26.117,
+      "median": 28.078,
+      "p95": 28.117,
+      "max": 36.117
+    },
+    "gps_rtt_ms": null,
+    "gps_sent": 0,
+    "gps_received": 0,
+    "gps_interval_ms": null,
+    "gps_data_samples": 20,
+    "gps_fix_samples": 0,
+    "receiver_counter_deltas": {
+      "ok": 368,
+      "crc": 0,
+      "timeouts": 0,
+      "stale": 0
+    }
+  },
+  "byte_identity": {
+    "original_udp_hex": "3cadf901419381c7c0f3c3f241393011",
+    "original_crtp_hex": "3cadf901419381c7c0f3c3f2413930",
+    "forwarded_crtp_hex": "3cadf901419381c7c0f3c3f2413930",
+    "crtp_bytes_equal": true,
+    "injected_via": "SETCRTP bench-only raw replay after normal bridge UDP validation; physical joystick/button not automated",
+    "actual_setpoints": {
+      "set_roll": 8.123456,
+      "set_pitch": -6.23456717,
+      "set_yaw": -30.3456783,
+      "set_thrust": 12345
+    }
+  },
+  "loss_checks": {
+    "timeouts_increased": true,
+    "loss_disarmed": true,
+    "loss_thrust_zero": true,
+    "both_link_leds_off": true,
+    "recovery_disarmed": true
+  },
+  "gps_return_on": {
+    "control_bytes": 19,
+    "original_crtp_bytes": 15,
+    "control_hz": 19.397523933637412,
+    "control_interval_ms": {
+      "count": 387,
+      "min": 50,
+      "median": 52,
+      "p95": 53,
+      "max": 57
+    },
+    "status_rtt_ms": {
+      "count": 74,
+      "min": 26.117,
+      "median": 28.117,
+      "p95": 28.117,
+      "max": 34.117
+    },
+    "gps_rtt_ms": {
+      "count": 20,
+      "min": 31.091,
+      "median": 31.637999999999998,
+      "p95": 32.138,
+      "max": 32.138
+    },
+    "gps_sent": 20,
+    "gps_received": 20,
+    "gps_interval_ms": {
+      "count": 19,
+      "min": 1018,
+      "median": 1030,
+      "p95": 1045,
+      "max": 1045
+    },
+    "gps_data_samples": 20,
+    "gps_fix_samples": 0,
+    "receiver_counter_deltas": {
+      "ok": 368,
+      "crc": 0,
+      "timeouts": 0,
+      "stale": 0
+    }
+  },
+  "final_receiver": {
+    "ms": 58280,
+    "ok": 989,
+    "wrong_pair": 0,
+    "bad": 0,
+    "crc": 0,
+    "stale": 0,
+    "timeouts": 1,
+    "tx": 248,
+    "drop": 0,
+    "tunnel_rx": 0,
+    "tunnel_tx": 0,
+    "armed": 0,
+    "seq": 66,
+    "age": 26,
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "thrust": 0,
+    "mpu_roll": 3.05654454,
+    "mpu_pitch": -13.7156105,
+    "rssi": -67,
+    "snr_q": 22,
+    "input_roll": 0,
+    "input_pitch": 0,
+    "input_yaw": -21.2847786,
+    "input_throttle": 0,
+    "input_flags": 0,
+    "control_bytes": 19,
+    "set_roll": 0,
+    "set_pitch": 0,
+    "set_yaw": 0,
+    "set_thrust": 0
+  },
+  "timing_definition": "Controller TX-start to matching reply parse; not one-way latency",
+  "calculated_airtime_ms": {
+    "control_19_bytes": 12.864,
+    "status_8_bytes": 9.024,
+    "gps_18_bytes": 12.864
+  },
+  "binary_sha256": {
+    "build/ESPDrone.bin": "a0e2d6a26128bed0df36eff40c1b2c8272e7991c371d59993305bc5e07264e3f",
+    "controller/build/LoRaController.bin": "bca69bcbc3b23c38a06ecea16051990e39aaebcab59be2c7e68c71fa9b79441a"
+  },
+  "test_date": "2026-11-25",
+  "notes": [
+    "Host access required: sandbox device visibility did not reflect USB attachment",
+    "Bench-only raw replay after original UDP/checksum parsing; physical sticks/button presses were not automated",
+    "GPS NMEA remained valid, but no satellite fix during these two 20-second indoor windows",
+    "The one final timeout was deliberately induced; zero timeouts in both normal measurement windows",
+    "A full third-party GUI session through the live UDP bridge remains untested"
+  ]
+}

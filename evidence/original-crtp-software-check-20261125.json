@@ -1,0 +1,60 @@
+{
+  "recorded_at": "2026-11-25T01:53:48.498953+05:30",
+  "revision": "Original legacy CRTP command over paired raw LoRa",
+  "control": {
+    "lora_bytes": 19,
+    "crtp_bytes": 15,
+    "wrapper_bytes": 4,
+    "kind": "0x50",
+    "float32_preserved": true,
+    "uint16_thrust_preserved": true,
+    "original_wifi_sum8": "validated/removed by laptop bridge; not part of CRTP",
+    "pair_id": "0xff10"
+  },
+  "checks": {
+    "receiver_idf_5_5_6_build": "PASS",
+    "controller_idf_5_5_6_build": "PASS",
+    "sanitized_c_suites": 5,
+    "bridge_python_tests": 3,
+    "original_wifi_to_actual_c_pipeline": "PASS",
+    "pin_and_feature_contract": "PASS",
+    "git_diff_check": "PASS",
+    "actual_hardware_check": "PASS"
+  },
+  "sanitizer_note": "AddressSanitizer and UBSan enabled; LeakSanitizer disabled because sandbox ptrace prevents leak inspection",
+  "hardware": {
+    "attached": true,
+    "flashed": true,
+    "over_radio_byte_test": "PASS",
+    "new_rtt_measurement": "PASS",
+    "gps_coexistence_on_new_frame": "PASS",
+    "evidence": "evidence/original-crtp-hardware-20261125.json"
+  },
+  "gps": "existing independent UART task and separate 18-byte returns retained; baseline next test with GPS_RETURN 0",
+  "physical_motor_outputs": false,
+  "report_status": "Paused at user request",
+  "calculated_airtime_ms": {
+    "19_byte_control": 12.864,
+    "18_byte_gps_reply": 12.864,
+    "8_byte_status": 9.024
+  },
+  "binary_sha256": {
+    "build/ESPDrone.bin": "a0e2d6a26128bed0df36eff40c1b2c8272e7991c371d59993305bc5e07264e3f",
+    "controller/build/LoRaController.bin": "bca69bcbc3b23c38a06ecea16051990e39aaebcab59be2c7e68c71fa9b79441a"
+  },
+  "source_sha256": {
+    "components/lora_protocol/lora_protocol.c": "b27b2fd41f9eab09db186d183d0bb8f75152e1b7a2e53780bc1342ccf25752bb",
+    "controller/main/controller.c": "046952fa7f698fc1439bc06c9d72dcbc75929715034b095828386f09c5eab761",
+    "components/core/crazyflie/hal/src/loralink.c": "eec36baf418389992818e2c07b92ee5120e3bce0545c2f5fe8822064ee229720",
+    "tools/wifi_crtp_bridge.py": "4c6786e8ad9532d79cc750f4574fb0b192f23900de24d84c3db0693cbdc7a65e"
+  },
+  "known_boundaries": [
+    "Legacy port3/channel0 commands implemented; generic port7/high-level port8 controls not implemented",
+    "Sparse diagnostic service tunnel retains its original bandwidth/disarmed-only limits",
+    "Physical arming required, KILL/expiry substitute zero setpoints intentionally",
+    "Historical 8-byte hardware timings do not measure this revision",
+    "Previously shared ZIP files have not been overwritten"
+  ],
+  "hardware_followup_at": "2026-11-25T02:06:23.159157+05:30",
+  "device_visibility_correction": "The earlier absent-device conclusion was based on sandbox /dev, which hides USB devices; host enumeration confirmed both boards attached."
+}

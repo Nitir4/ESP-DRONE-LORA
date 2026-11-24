@@ -53,3 +53,7 @@ GPS version: receiver blue GPIO26 is steady with a fresh fix, slow-blinking with
 5. After a timeout, stop or reboot, deliberately arm again at zero throttle. A recovered green link does not rearm.
 
 If values appear stuck, compare decoded `input_*`, applied `set_*`, `armed`, `age`, `timeouts`, CRC errors and `mpu_*`. Applied zero while disarmed is expected. MPU angles respond to physical tilt, not joystick input without a moving airframe.
+
+## Current command transport
+
+The controller now sends original float32/uint16 CRTP commands in a 19-byte LoRa wrapper, rather than quantizing channels to eight bytes. `input_throttle` is now uint16 thrust units (stick range 0–60000); it is not 0–255. Pin mappings, arming, kill, dedicated link LEDs and separate GPS returns remain as documented above. See [ORIGINAL_CRTP_LORA.md](ORIGINAL_CRTP_LORA.md) for actual-byte inspection, the laptop bridge and the required hardware verification. The earlier captures do not time the current command format.

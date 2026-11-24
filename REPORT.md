@@ -1,3 +1,5 @@
+> **Historical compressed-stage report.** This file records the earlier 8-byte prototype and its tests. The 25 November revision now sends the original 15-byte CRTP command inside a 19-byte LoRa frame. See [the current protocol](docs/ORIGINAL_CRTP_LORA.md). Historical timing here does not characterize the new path. The unified progress report is postponed until communication behavior is resolved.
+
 # ESP-Drone: 8-byte LoRa control with separate GPS telemetry
 
 Prepared 2026-11-17. compact control plus independent NEO-6M reading and separate approximately 1 Hz GPS return packets. GPS does not enlarge the control frame.

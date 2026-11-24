@@ -2,6 +2,8 @@
 
 Each folder contains **both** firmware projects: receiver at the root and matching controller under `controller/`. It does not depend on the sibling variant or the original working folder. Keep `LICENSE` with source redistributions.
 
+See [Original CRTP over LoRa](docs/ORIGINAL_CRTP_LORA.md) for the current 19-byte control frame, laptop UDP bridge and precision/packet tests. Flash both ends; older compressed captures are not measurements of this revision.
+
 ## Environment and fresh builds
 
 The split builds were checked with **ESP-IDF 5.5.6**, ESP32 target, and its Python 3.11 environment. Install that IDF release and its toolchain using Espressif's setup procedure, then activate its `export.sh`. Do not run the project with an arbitrary system Python and assume the IDF dependencies match. See [Espressif's v5.5 build-system guide](https://docs.espressif.com/projects/esp-idf/en/v5.5/esp32/api-guides/build-system.html) for `idf.py` and project configuration.
@@ -15,6 +17,8 @@ idf.py build
 (cd controller && idf.py build)
 python3 tools/check_variant.py
 python3 tools/run_host_tests.py
+python3 tests/wifi_bridge_test.py
+python3 tests/original_wifi_pipeline_test.py
 python3 tools/airtime.py
 ```
 
@@ -63,7 +67,7 @@ The dashboard requires a terminal with Python curses support; on Windows use an 
 
 ### View the control packet and GPS timing
 
-Open both dashboards with each board's serial port. On the controller, `TX8` shows the actual 8-byte control payload. On the receiver, `CRTP data` shows the 14 data bytes reconstructed from its logged roll, pitch, yaw and thrust values. The CRTP header adds one byte (`0x30` for port 3, channel 0). The receiver also displays `CRTP transport: paired-lora` when its boot line is captured.
+Open both dashboards with each board's serial port. On the controller, `TX19` shows the actual 19-byte LoRa frame. On the receiver, `CRTP_CONTROL` shows the actual original 15-byte CRTP packet queued after arming/kill handling. The CRTP header adds one byte (`0x30` for port 3, channel 0). The receiver also displays `CRTP transport: paired-lora` when its boot line is captured.
 
 On the receiver, **GPS TX gap** is the device time between consecutive successful GPS transmissions. On the controller, **GPS RTT** runs from the start of the requesting control transmission to receipt of its matched 18-byte GPS reply. **RX gap** is the time between GPS replies received by the controller and can grow when a reply is missed. The two gaps use their respective board's clock. Each needs two GPS events before appearing. The displays use existing serial messages and work with the packaged firmware.
 
@@ -77,7 +81,7 @@ Ctrl+C stops this follower; close the dashboard too if you want to stop raw logg
 
 ## Verification and timing rerun
 
-`tools/run_host_tests.py` builds four portable C suites with AddressSanitizer/UBSan: compact codec/guard, GPS codec, NMEA parser and dedicated LED invariants/deadlines/timer wrap. GPS tests are retained as common-code regression tests even in the no-GPS variant; they do not enable GPS in firmware.
+`tools/run_host_tests.py` builds five portable C suites with AddressSanitizer/UBSan: original full-CRTP byte preservation, compact codec/guard, GPS codec, NMEA parser and dedicated LED invariants/deadlines/timer wrap. GPS tests are retained as common-code regression tests even in the no-GPS variant; they do not enable GPS in firmware.
 
 After both boards are flashed with one matching variant, close dashboards and run the portable integration exercise:
 
@@ -87,4 +91,4 @@ python3 tools/verify_hardware.py --controller-port /dev/ttyACM0 --receiver-port 
 
 It requires the paired receiver to advertise physical motor outputs inhibited. It exercises nonzero diagnostic controls, arming, kill, wrong pairing, replay, silence, CRTP echo and recovery; keep the motorless profile. It writes `logs/hardware-events.jsonl` and `logs/hardware-summary.json` (overwriting those two previous exercise files). Its terminal timing is not a synchronized one-way latency measurement. The hardware script exercises the installed boards and writes a local capture.
 
-For a new latency comparison, capture `TX8` intervals and matching `LINK_ACK.rtt_us` for at least a documented duration. Compare identical PHY settings and test conditions, with GPS returns absent/present. The GPS version can toggle `GPS_RETURN 0/1` on receiver USB for a return-only A/B test; the no-GPS build keeps radio return off even if `GPS_RETURN 1` is requested. For end-to-end latency use a shared hardware timing reference as described in REPORT.md. Record firmware hashes, sample counts, losses, min/median/p95/max and the distinction between control/status/GPS packets.
+For a new latency comparison, capture `TX19` intervals and matching `LINK_ACK.rtt_us` for at least a documented duration. Compare identical PHY settings and test conditions, with GPS returns absent/present. The GPS version can toggle `GPS_RETURN 0/1` on receiver USB for a return-only A/B test; the no-GPS build keeps radio return off even if `GPS_RETURN 1` is requested. For end-to-end latency use a shared hardware timing reference as described in REPORT.md. Record firmware hashes, sample counts, losses, min/median/p95/max and the distinction between control/status/GPS packets.
