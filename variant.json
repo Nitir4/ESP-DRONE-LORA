@@ -1,16 +1,16 @@
 {
-  "name": "lora-original-crtp-gps",
-  "gps_support": true,
+  "name": "lora-original-crtp-control",
+  "gps_support": false,
   "control_bytes": 19,
-  "gps_return_bytes": 18,
+  "gps_return_bytes": 0,
   "physical_motors_enabled": false,
   "based_on": "esp-drone-lora working tree snapshot 2026-11-17",
   "upstream_commit": "9d5a4f85199ea056f40472b2248e10dcb6988b5c",
   "hardware_retested_after_split": false,
-  "pair_id": "0xff10",
+  "pair_id": "0xff11",
   "original_crtp_bytes": 15,
   "legacy_control_bytes": 8,
-  "hardware_retested_after_full_crtp": true,
+  "hardware_retested_after_full_crtp": false,
   "full_crtp_revision_date": "2026-11-25",
-  "latest_hardware_evidence": "evidence/original-crtp-hardware-20261125.json"
+  "latest_hardware_evidence": "Main/GPS profile only: evidence/original-crtp-hardware-20261125.json"
 }

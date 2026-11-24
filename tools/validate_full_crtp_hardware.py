@@ -221,6 +221,7 @@ def main():
     args=parser.parse_args()
     assert 10<=args.seconds<=60
     cfg=(ROOT/'sdkconfig').read_text()
+    assert 'CONFIG_GPS_ENABLED=y' in cfg, 'GPS A/B comparison requires the main/GPS profile; use verify_hardware.py for this GPS-disabled branch'
     assert 'CONFIG_WIFI_BENCH_NO_MOTORS=y' in cfg
     assert '# CONFIG_MOTORS_STARTUP_TEST is not set' in cfg
     stamp=datetime.now().astimezone().strftime('%Y%m%d-%H%M%S')

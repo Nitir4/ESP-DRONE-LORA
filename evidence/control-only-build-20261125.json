@@ -1,0 +1,10 @@
+{
+  "branch": "control-only",
+  "control_bytes": 19,
+  "gps_support": false,
+  "pair_id": "0xff11",
+  "receiver_build": "PASS",
+  "controller_build": "PASS",
+  "portable_host_checks": "PASS",
+  "hardware": "Shared transport checked on main; GPS-disabled profile not flashed during this change"
+}
