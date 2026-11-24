@@ -1,0 +1,33 @@
+{
+  "baseline_frames": 97,
+  "baseline_rate_hz": 19.39002221773379,
+  "device_intervals_ms": {
+    "median": 52.0,
+    "min": 50,
+    "max": 53
+  },
+  "final": {
+    "ms": 31329,
+    "ok": 447,
+    "wrong_pair": 14,
+    "bad": 0,
+    "crc": 0,
+    "stale": 22,
+    "timeouts": 6,
+    "tx": 113,
+    "drop": 0,
+    "tunnel_rx": 2,
+    "tunnel_tx": 2,
+    "armed": 0,
+    "seq": 26,
+    "age": 47,
+    "roll": 0.0,
+    "pitch": 0.0,
+    "yaw": 0.0,
+    "thrust": 0,
+    "mpu_roll": 1.74,
+    "mpu_pitch": -20.26,
+    "rssi": -78,
+    "snr_q": 22
+  }
+}

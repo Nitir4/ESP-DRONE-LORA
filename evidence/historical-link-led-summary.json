@@ -1,0 +1,64 @@
+{
+  "completed": true,
+  "evidence": "firmware GPIO output masks from both boards; not optical measurement",
+  "controller_link_gpio": 21,
+  "receiver_link_gpio": 25,
+  "timeout_ms": {
+    "controller": 500,
+    "receiver": 300
+  },
+  "renderer_period_ms": 25,
+  "samples": {
+    "steady": {
+      "controller": 14,
+      "receiver": 3
+    },
+    "off": {
+      "controller": 11,
+      "receiver": 2
+    },
+    "recovered": {
+      "controller": 15,
+      "receiver": 3
+    }
+  },
+  "final_receiver": {
+    "ms": 16450,
+    "ok": 132,
+    "wrong_pair": 0,
+    "bad": 0,
+    "crc": 0,
+    "stale": 0,
+    "timeouts": 1,
+    "tx": 33,
+    "drop": 0,
+    "tunnel_rx": 0,
+    "tunnel_tx": 0,
+    "armed": 0,
+    "seq": 236,
+    "age": 27,
+    "roll": 0.0,
+    "pitch": 0.0,
+    "yaw": 0.0,
+    "thrust": 0,
+    "mpu_roll": 1.29,
+    "mpu_pitch": -13.4,
+    "rssi": -59,
+    "snr_q": 22,
+    "input_roll": 0.0,
+    "input_pitch": 0.0,
+    "input_yaw": 0.0,
+    "input_throttle": 0,
+    "input_flags": 4,
+    "set_roll": 0.0,
+    "set_pitch": 0.0,
+    "set_yaw": -0.0,
+    "set_thrust": 0.0
+  },
+  "checks": [
+    "steady dedicated link outputs",
+    "both link outputs off during control silence",
+    "automatic link recovery",
+    "recovery stays disarmed with zero thrust"
+  ]
+}

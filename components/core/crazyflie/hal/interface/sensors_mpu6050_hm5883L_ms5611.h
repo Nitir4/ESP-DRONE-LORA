@@ -32,6 +32,7 @@
 void sensorsMpu6050Hmc5883lMs5611Init(void);
 bool sensorsMpu6050Hmc5883lMs5611Test(void);
 bool sensorsMpu6050Hmc5883lMs5611AreCalibrated(void);
+bool sensorsMpu6050Health(void);
 bool sensorsMpu6050Hmc5883lMs5611ManufacturingTest(void);
 void sensorsMpu6050Hmc5883lMs5611Acquire(sensorData_t *sensors, const uint32_t tick);
 void sensorsMpu6050Hmc5883lMs5611WaitDataReady(void);

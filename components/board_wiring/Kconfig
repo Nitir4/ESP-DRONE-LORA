@@ -1,0 +1,70 @@
+menu "Project wiring and diagnostics"
+    config PROJECT_GPS_SUPPORT
+        bool "Enable GPS integration and expect GPS return telemetry"
+        default y
+    config PROJECT_STATUS_LEDS
+        bool "Project LED meanings (single owner; replaces stock LED sequences)"
+        default y
+    config BOARD_LORA_NSS
+        int "LoRa NSS GPIO"
+        range 0 33
+        default 5
+    config BOARD_LORA_SCK
+        int "LoRa SCK GPIO"
+        range 0 33
+        default 18
+    config BOARD_LORA_MISO
+        int "LoRa MISO GPIO"
+        range 0 39
+        default 19
+    config BOARD_LORA_MOSI
+        int "LoRa MOSI GPIO"
+        range 0 33
+        default 23
+    config BOARD_LORA_RST
+        int "LoRa reset GPIO"
+        range 0 33
+        default 14
+    config BOARD_LORA_DIO0
+        int "LoRa DIO0 GPIO"
+        range 0 39
+        default 2
+    config BOARD_CTRL_ROLL
+        int "Controller U2 VRX / roll ADC GPIO"
+        range 0 39
+        default 27
+    config BOARD_CTRL_PITCH
+        int "Controller U2 VRY / pitch ADC GPIO"
+        range 0 39
+        default 26
+    config BOARD_CTRL_YAW
+        int "Controller U1 VRX / yaw ADC GPIO"
+        range 0 39
+        default 33
+    config BOARD_CTRL_THROTTLE
+        int "Controller U1 VRY / throttle ADC GPIO"
+        range 0 39
+        default 32
+    config BOARD_CTRL_ARM_SW
+        int "Controller U1 switch GPIO"
+        range 0 39
+        default 13
+    config BOARD_CTRL_STOP_SW
+        int "Controller U2 switch GPIO"
+        range 0 39
+        default 25
+    config BOARD_CTRL_LED_ACTIVITY
+        int "Controller activity LED GPIO (-1 disables)"
+        range -1 33
+        default 4
+    config BOARD_CTRL_LED_STATUS
+        int "Controller dedicated link LED GPIO (-1 disables)"
+        range -1 33
+        default 21
+    config BOARD_CTRL_LEDS_ACTIVE_LOW
+        bool "Controller LEDs are active-low"
+        default n
+    config BOARD_DRONE_LEDS_ACTIVE_LOW
+        bool "Drone LEDs are active-low"
+        default n
+endmenu

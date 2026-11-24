@@ -356,7 +356,12 @@ void soundInit(void)
 
 bool soundTest(void)
 {
+#ifdef CONFIG_BUZZER_ON
   return isInit;
+#else
+  // An intentionally absent buzzer must not prevent the worker/logging loop.
+  return true;
+#endif
 }
 
 void soundSetEffect(uint32_t effect)

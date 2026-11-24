@@ -82,8 +82,9 @@
 // #define SENSORS_ENABLE_MAG_HM5883L
 // #define SENSORS_ENABLE_PRESSURE_MS5611
 //#define SENSORS_ENABLE_RANGE_VL53L0X
-#define SENSORS_ENABLE_RANGE_VL53L1X
-#define SENSORS_ENABLE_FLOW_PMW3901
+// Bench board has only the MPU6050; leave GPS/LoRa pins untouched.
+// #define SENSORS_ENABLE_RANGE_VL53L1X
+// #define SENSORS_ENABLE_FLOW_PMW3901
 
 #define SENSORS_GYRO_FS_CFG MPU6050_GYRO_FS_2000
 #define SENSORS_DEG_PER_LSB_CFG MPU6050_DEG_PER_LSB_2000
@@ -145,6 +146,13 @@ static xSemaphoreHandle dataReady;
 static bool isInit = false;
 static sensorData_t sensorData;
 static volatile uint64_t imuIntTimestamp;
+static volatile uint32_t lastGoodImuMs;
+
+bool sensorsMpu6050Health(void)
+{
+    uint32_t last=lastGoodImuMs;
+    return last!=0 && (uint32_t)((uint32_t)(esp_timer_get_time()/1000)-last)<250;
+}
 
 static Axis3i16 gyroRaw;
 static Axis3i16 accelRaw;
@@ -172,9 +180,7 @@ static bool isVl53l1xPresent = false;
 #ifdef SENSORS_ENABLE_RANGE_VL53L0X
 static bool isVl53l0xPresent = false;
 #endif
-#ifdef SENSORS_ENABLE_FLOW_PMW3901
 static bool isPmw3901Present = false;
-#endif
 static bool isMpu6050TestPassed = false;
 #ifdef SENSORS_ENABLE_MAG_HM5883L
 static bool isHmc5883lTestPassed = false;
@@ -264,7 +270,11 @@ static void sensorsTask(void *param)
             uint8_t dataLen = (uint8_t)(SENSORS_MPU6050_BUFF_LEN +
                                         (isMagnetometerPresent ? SENSORS_MAG_BUFF_LEN : 0) +
                                         (isBarometerPresent ? SENSORS_BARO_BUFF_LEN : 0));
-            i2cdevReadReg8(I2C0_DEV, MPU6050_ADDRESS_AD0_LOW, MPU6050_RA_ACCEL_XOUT_H, dataLen, buffer);
+            if(!i2cdevReadReg8(I2C0_DEV, MPU6050_ADDRESS_AD0_LOW, MPU6050_RA_ACCEL_XOUT_H, dataLen, buffer)){
+                // Do not publish a previous sample as fresh sensor data.
+                continue;
+            }
+            lastGoodImuMs=esp_timer_get_time()/1000;
 
             /* sensors step 2-process the respective data */
             processAccGyroMeasurements(&(buffer[0]));

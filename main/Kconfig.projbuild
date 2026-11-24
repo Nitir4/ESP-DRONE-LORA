@@ -1,5 +1,12 @@
 menu "ESPDrone Config"
 
+    config WIFI_BENCH_NO_MOTORS
+        bool "Bench investigation: simulate motor outputs without configuring GPIO"
+        default y
+        help
+            Keep the estimator, controller, mixer and protocol running, but
+            never initialize or drive motor PWM hardware. Not flight firmware.
+
     choice
         prompt "ESP_Drone hardware version"
         default TARGET_ESP32_S2_DRONE_V1_2 if IDF_TARGET_ESP32S3
@@ -29,6 +36,10 @@ menu "ESPDrone Config"
         prompt "CRTP transport"
         default TRANSPORT_NATIVE_WIFI if SOC_WIFI_SUPPORTED
         default TRANSPORT_NONE
+
+        config TRANSPORT_LORA
+            bool "paired SX127x LoRa (8-byte control + CRTP tunnel)"
+            depends on IDF_TARGET_ESP32
 
         config TRANSPORT_NATIVE_WIFI
             bool "native Wi-Fi"

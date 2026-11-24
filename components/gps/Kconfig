@@ -1,0 +1,33 @@
+menu "NEO-6M GPS"
+    config GPS_ENABLED
+        bool "Read GPS independently of the radio/flight loop"
+        depends on PROJECT_GPS_SUPPORT
+        default y
+    config GPS_UART_NUM
+        int "GPS UART peripheral (console UART0 is reserved)"
+        range 1 2
+        default 2
+    config GPS_RX_GPIO
+        int "ESP RX GPIO connected to GPS TX"
+        range 0 39
+        default 16
+    config GPS_TX_GPIO
+        int "Reserved ESP TX GPIO / GPS RX (not driven by receive-only reader)"
+        range -1 33
+        default 17
+    config GPS_BAUD
+        int "GPS UART baud"
+        range 1200 115200
+        default 9600
+    config GPS_TELEMETRY_ENABLED
+        bool "Return separate GPS telemetry in existing LoRa reply slots"
+        depends on GPS_ENABLED
+        default y
+    config GPS_TELEMETRY_PERIOD_MS
+        int "GPS radio telemetry minimum period (ms)"
+        range 1000 60000
+        default 1000
+    config GPS_PRINT_NMEA
+        bool "Print every NMEA sentence to USB (off for timing measurements)"
+        default n
+endmenu

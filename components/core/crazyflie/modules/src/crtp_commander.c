@@ -31,9 +31,11 @@
 #include "cfassert.h"
 #include "commander.h"
 #include "crtp.h"
+#include "log.h"
 
 
 static bool isInit;
+static uint32_t benchRxCount;
 
 static void commanderCrtpCB(CRTPPacket* pk);
 
@@ -112,6 +114,8 @@ static void commanderCrtpCB(CRTPPacket* pk)
   static setpoint_t setpoint;
 
   if(pk->port == CRTP_PORT_SETPOINT && pk->channel == 0) {
+    if (pk->size != 14) return;
+    benchRxCount++;
     crtpCommanderRpytDecodeSetpoint(&setpoint, pk);
     commanderSetSetpoint(&setpoint, COMMANDER_PRIORITY_CRTP);
   } else if (pk->port == CRTP_PORT_SETPOINT_GENERIC) {
@@ -133,3 +137,7 @@ static void commanderCrtpCB(CRTPPacket* pk)
     }
   }
 }
+
+LOG_GROUP_START(benchRx)
+LOG_ADD(LOG_UINT32, count, &benchRxCount)
+LOG_GROUP_STOP(benchRx)

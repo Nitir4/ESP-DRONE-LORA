@@ -35,6 +35,7 @@
 #include "log.h"
 #include "param.h"
 #include "motors.h"
+#include "led.h"
 #include "pm_esplane.h"
 #include "esp_timer.h"
 #include "stabilizer.h"
@@ -56,6 +57,7 @@
 #include "rateSupervisor.h"
 
 static bool isInit;
+static uint32_t benchCommandAge;
 static bool emergencyStop = false;
 static bool sensorsSelfTestPassed = false;
 static int emergencyStopTimeout = EMERGENCY_STOP_TIMEOUT_DISABLED;
@@ -304,6 +306,7 @@ static void stabilizerTask(void* param)
       compressState();
 
       commanderGetSetpoint(&setpoint, &state);
+      benchCommandAge = commanderGetInactivityTime();
       compressSetpoint();
 
       sitAwUpdateSetpoint(&setpoint, &sensorData, &state);
@@ -715,3 +718,21 @@ LOG_ADD(LOG_INT16, rateRoll, &stateCompressed.rateRoll)   // angular velocity - 
 LOG_ADD(LOG_INT16, ratePitch, &stateCompressed.ratePitch)
 LOG_ADD(LOG_INT16, rateYaw, &stateCompressed.rateYaw)
 LOG_GROUP_STOP(stateEstimateZ)
+
+// Bench-only observation of the actual post-watchdog control setpoint.
+LOG_GROUP_START(benchSet)
+LOG_ADD(LOG_FLOAT, roll, &setpoint.attitude.roll)
+LOG_ADD(LOG_FLOAT, pitch, &setpoint.attitude.pitch)
+LOG_ADD(LOG_FLOAT, yawRate, &setpoint.attitudeRate.yaw)
+LOG_ADD(LOG_FLOAT, thrust, &setpoint.thrust)
+LOG_ADD(LOG_UINT32, ageMs, &benchCommandAge)
+LOG_GROUP_STOP(benchSet)
+
+LOG_GROUP_START(benchLed)
+LOG_ADD(LOG_UINT8, blue, &benchLedLevel[LED_BLUE])
+LOG_ADD(LOG_UINT8, green, &benchLedLevel[LED_GREEN])
+LOG_ADD(LOG_UINT8, red, &benchLedLevel[LED_RED])
+LOG_ADD(LOG_UINT32, blueRises, &benchLedRises[LED_BLUE])
+LOG_ADD(LOG_UINT32, greenRises, &benchLedRises[LED_GREEN])
+LOG_ADD(LOG_UINT32, redRises, &benchLedRises[LED_RED])
+LOG_GROUP_STOP(benchLed)

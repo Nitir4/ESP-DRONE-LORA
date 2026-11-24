@@ -3,6 +3,9 @@
 cmake_minimum_required(VERSION 3.5)
 
 set(__PROJECT_GROUP_LINK_COMPONENTS ON)
+if(NOT SDKCONFIG_DEFAULTS)
+    set(SDKCONFIG_DEFAULTS "${CMAKE_CURRENT_LIST_DIR}/sdkconfig.defaults;${CMAKE_CURRENT_LIST_DIR}/boards/receiver-current.defaults")
+endif()
 
 list(APPEND EXTRA_COMPONENT_DIRS
      "${CMAKE_CURRENT_LIST_DIR}/components/core/crazyflie"

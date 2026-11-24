@@ -9,9 +9,13 @@
 #include "wifilink.h"
 #endif
 
+#ifdef CONFIG_TRANSPORT_LORA
+#include "loralink.h"
+#endif
+
 static bool isInit;
 
-#ifdef CONFIG_TRANSPORT_NONE
+#if defined(CONFIG_TRANSPORT_NONE)
 static int noneSetEnable(bool enable)
 {
     (void)enable;
@@ -53,6 +57,8 @@ void transportInit(void)
 #if defined(CONFIG_TRANSPORT_NATIVE_WIFI) || defined(CONFIG_TRANSPORT_REMOTE_WIFI)
     wifiInit();
     wifilinkInit();
+#elif defined(CONFIG_TRANSPORT_LORA)
+    loralinkInit();
 #endif
     isInit = true;
 }
@@ -65,6 +71,8 @@ bool transportTest(void)
 
 #if defined(CONFIG_TRANSPORT_NATIVE_WIFI) || defined(CONFIG_TRANSPORT_REMOTE_WIFI)
     return wifiTest() && wifilinkTest();
+#elif defined(CONFIG_TRANSPORT_LORA)
+    return loralinkTest();
 #else
     return true;
 #endif
@@ -74,6 +82,8 @@ struct crtpLinkOperations *transportGetLink(void)
 {
 #if defined(CONFIG_TRANSPORT_NATIVE_WIFI) || defined(CONFIG_TRANSPORT_REMOTE_WIFI)
     return wifilinkGetLink();
+#elif defined(CONFIG_TRANSPORT_LORA)
+    return loralinkGetLink();
 #else
     return &noneLink;
 #endif
@@ -85,6 +95,8 @@ const char *transportGetName(void)
     return "native-wifi";
 #elif defined(CONFIG_TRANSPORT_REMOTE_WIFI)
     return "remote-wifi";
+#elif defined(CONFIG_TRANSPORT_LORA)
+    return "paired-lora";
 #else
     return "none";
 #endif

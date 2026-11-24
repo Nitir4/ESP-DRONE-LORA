@@ -23,6 +23,7 @@
 #define __LED_H__
 
 #include <stdbool.h>
+#include <stdint.h>
 
 //Led polarity configuration constant
 #define LED_POL_POS 0
@@ -46,6 +47,10 @@
 #define LED_NUM 3
 
 typedef enum {LED_BLUE = 0, LED_RED, LED_GREEN} led_t;
+
+// Bench observability: requested GPIO levels and counted rising edges.
+extern uint8_t benchLedLevel[LED_NUM];
+extern uint32_t benchLedRises[LED_NUM];
 
 void ledInit();
 bool ledTest();

@@ -1,0 +1,11 @@
+{
+  "name": "lora-gps-telemetry",
+  "gps_support": true,
+  "control_bytes": 8,
+  "gps_return_bytes": 18,
+  "physical_motors_enabled": false,
+  "based_on": "esp-drone-lora working tree snapshot 2026-11-17",
+  "upstream_commit": "9d5a4f85199ea056f40472b2248e10dcb6988b5c",
+  "hardware_retested_after_split": false,
+  "pair_id": "0xff10"
+}

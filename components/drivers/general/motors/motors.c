@@ -23,6 +23,7 @@
 
 #include <stdbool.h>
 #include <inttypes.h>
+#include <string.h>
 
 #include "esp_err.h"
 
@@ -131,6 +132,13 @@ static bool pwmTimerInit(void)
 //Initialization. Will set all motors ratio to 0%
 bool motorsInit(const MotorPerifDef **motorMapSelect)
 {
+#ifdef CONFIG_WIFI_BENCH_NO_MOTORS
+    motorMap = motorMapSelect;
+    isInit = true;
+    isHealthy = true;
+    DEBUG_PRINTW("BENCH: motor GPIO/PWM disabled; ratios are simulated only");
+    return true;
+#endif
     if (isInit) {
         return isHealthy;
     }
@@ -177,6 +185,12 @@ bool motorsInit(const MotorPerifDef **motorMapSelect)
 
 void motorsDeInit(const MotorPerifDef **motorMapSelect)
 {
+#ifdef CONFIG_WIFI_BENCH_NO_MOTORS
+    isInit = false;
+    isHealthy = false;
+    motorMap = NULL;
+    return;
+#endif
     (void)motorMapSelect;
     if (!isInit) {
         return;
@@ -193,6 +207,10 @@ void motorsDeInit(const MotorPerifDef **motorMapSelect)
 /* Bypass the health guard so a fault can still force every PWM output low. */
 static void motorsForceStopAll(void)
 {
+#ifdef CONFIG_WIFI_BENCH_NO_MOTORS
+    memset(motor_ratios, 0, sizeof(motor_ratios));
+    return;
+#endif
     for (int i = 0; i < NBR_OF_MOTORS; i++) {
         ledc_stop(motors_channel[i].speed_mode, motors_channel[i].channel, 0);
         motor_ratios[i] = 0;
@@ -233,6 +251,11 @@ bool motorsTest(void)
 // Ithrust is thrust mapped for 65536 <==> 60 grams
 bool motorsSetRatio(uint32_t id, uint16_t ithrust)
 {
+#ifdef CONFIG_WIFI_BENCH_NO_MOTORS
+    if (!isInit || id >= NBR_OF_MOTORS) return false;
+    motor_ratios[id] = ithrust;
+    return true;
+#endif
     if (!isInit || !isHealthy || id >= NBR_OF_MOTORS) {
         return false;
     }
@@ -280,6 +303,9 @@ bool motorsSetRatio(uint32_t id, uint16_t ithrust)
 
 int motorsGetRatio(uint32_t id)
 {
+#ifdef CONFIG_WIFI_BENCH_NO_MOTORS
+    return (isInit && id < NBR_OF_MOTORS) ? motor_ratios[id] : -1;
+#endif
     if (!isInit || id >= NBR_OF_MOTORS) {
         return -1;
     }
@@ -289,6 +315,9 @@ int motorsGetRatio(uint32_t id)
 
 void motorsBeep(int id, bool enable, uint16_t frequency, uint16_t ratio)
 {
+#ifdef CONFIG_WIFI_BENCH_NO_MOTORS
+    return;
+#endif
     uint32_t freq_hz = 15000;
     if (!isInit || !isHealthy || id < 0 || id >= NBR_OF_MOTORS ||
         (enable && frequency == 0)) {

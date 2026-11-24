@@ -34,6 +34,8 @@
 #include "esp_err.h"
 #include "i2c_drv.h"
 #include "config.h"
+#include "driver/gpio.h"
+#include "esp_rom_sys.h"
 #define DEBUG_MODULE "I2CDRV"
 #include "debug_cf.h"
 
@@ -49,7 +51,7 @@ static const I2cDef sensorBusDef = {
     .i2cClockSpeed      = I2C_DEFAULT_SENSORS_CLOCK_SPEED,
     .gpioSCLPin         = CONFIG_I2C0_PIN_SCL,
     .gpioSDAPin         = CONFIG_I2C0_PIN_SDA,
-    .enableInternalPullup = false,
+    .enableInternalPullup = true,
 };
 
 I2cDrv sensorsBus = {
@@ -75,6 +77,24 @@ bool i2cdrvInit(I2cDrv *i2c)
     }
     if (i2c->isInitialized) {
         return true;
+    }
+
+    // USB resets can interrupt an MPU read while the sensor remains powered.
+    // Release a slave holding SDA by supplying nine clocks and a STOP before
+    // handing the pins to the hardware master. Never fake a successful IMU test.
+    if (i2c == &sensorsBus) {
+        gpio_num_t sda=i2c->def->gpioSDAPin,scl=i2c->def->gpioSCLPin;
+        gpio_set_level(sda,1);gpio_set_level(scl,1);
+        gpio_set_direction(sda,GPIO_MODE_INPUT_OUTPUT_OD);
+        gpio_set_direction(scl,GPIO_MODE_INPUT_OUTPUT_OD);
+        gpio_set_pull_mode(sda,GPIO_PULLUP_ONLY);gpio_set_pull_mode(scl,GPIO_PULLUP_ONLY);
+        for(int n=0;n<9;n++) {
+            gpio_set_level(scl,0);esp_rom_delay_us(10);
+            gpio_set_level(scl,1);esp_rom_delay_us(10);
+        }
+        gpio_set_level(scl,0);gpio_set_level(sda,0);esp_rom_delay_us(10);
+        gpio_set_level(scl,1);esp_rom_delay_us(10);gpio_set_level(sda,1);
+        esp_rom_delay_us(10);
     }
 
     i2c->isBusFreeMutex = xSemaphoreCreateMutex();

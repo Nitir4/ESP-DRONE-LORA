@@ -18,6 +18,8 @@ if(CONFIG_TRANSPORT_NATIVE_WIFI)
   list(APPEND crazyflie_transport_sources "./hal/src/wifilink.c")
 elseif(CONFIG_TRANSPORT_REMOTE_WIFI)
   list(APPEND crazyflie_transport_sources "./hal/src/wifilink.c")
+elseif(CONFIG_TRANSPORT_LORA)
+  list(APPEND crazyflie_transport_sources "./hal/src/loralink.c")
 endif()
 
 if(CONFIG_ESPNOW_CONTROL)
@@ -31,6 +33,7 @@ idf_component_register(SRCS "./hal/src/buzzer.c"
                 "./hal/src/sensors_mpu6050_hm5883L_ms5611.c" 
                 "./hal/src/sensors.c" 
                 "./hal/src/transport.c"
+                "./hal/src/project_status.c"
                 "./hal/src/usec_time.c" 
                 ${crazyflie_transport_sources}
                 "./modules/src/app_handler.c" 
@@ -95,7 +98,7 @@ idf_component_register(SRCS "./hal/src/buzzer.c"
                 "./utils/src/version.c"
                 "./utils/src/rateSupervisor.c"
                 INCLUDE_DIRS "./hal/interface" "./modules/interface" "./utils/interface"
-                REQUIRES i2c_bus deck mpu6050 ms5611 hmc5883l pmw3901 vl53l1 vl53l0 platform config led eeprom dsp_lib motors adc esp_timer esp_driver_gpio ${crazyflie_transport_requires})
+                REQUIRES i2c_bus deck mpu6050 ms5611 hmc5883l pmw3901 vl53l1 vl53l0 platform config led eeprom dsp_lib motors adc esp_timer esp_driver_gpio lora_radio lora_protocol gps status_led ${crazyflie_transport_requires})
 
 idf_component_get_property( FREERTOS_ORIG_INCLUDE_PATH freertos ORIG_INCLUDE_PATH)
 target_include_directories(${COMPONENT_TARGET} PUBLIC

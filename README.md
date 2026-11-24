@@ -1,50 +1,24 @@
+# ESP-DRONE-LORA
 
-## ESP-Drone
+ESP-Drone receiver firmware and a matching ESP32 joystick controller. A point-to-point SX127x LoRa link carries **8-byte control packets**. The receiver rebuilds the legacy **14-byte CRTP setpoint payload** and feeds it to ESP-Drone's flight code.
 
-* [中文](./README_cn.md)
+This branch enables GPS. GPS telemetry uses the existing reply opportunities and leaves the uplink at eight bytes.
 
-[![Build project](https://github.com/espressif/esp-drone/actions/workflows/build_project.yml/badge.svg)](https://github.com/espressif/esp-drone/actions/workflows/build_project.yml)
+| Branch | GPS | Default pair ID |
+| --- | --- | --- |
+| [`main`](https://github.com/Nitir4/ESP-DRONE-LORA/tree/main) | NEO-6M UART input and separate 18-byte LoRa replies | `0xff10` |
+| [`control-only`](https://github.com/Nitir4/ESP-DRONE-LORA/tree/control-only) | GPS UART task and GPS replies disabled | `0xff11` |
 
-### Introduction
+Both branches contain the receiver at the repository root and the joystick transmitter in [`controller/`](controller/). The current board profiles target classic ESP32 and were built with ESP-IDF 5.5.6. The receiver disables physical motor outputs for bench testing.
 
-**ESP-Drone** is an open-source drone solution for Espressif SoCs. The flight hardware can be controlled by a mobile app or gamepad over **Wi-Fi**. ESP-Drone has **simple hardware** and an extensible architecture, making it suitable for **STEAM education** and prototyping. The flight-control core is derived from the **Crazyflie** open-source project and is licensed under GPL-3.0.
+The **8-byte control frame takes 9.024 ms of calculated airtime**. In a 30-second indoor bench run, the controller received **28 of 29** GPS replies with a **28.142 ms median round trip**. The GPS reported valid NMEA data without a satellite fix. [Indoor bench results](evidence/indoor-gps-bench-20261124.json)
 
-> Supported ESP-IDF branches are [release/v5.5](https://docs.espressif.com/projects/esp-idf/en/release-v5.5/esp32s2/get-started/index.html) and `release/v6.1` only. ESP32-S31 requires the 6.1 preview target. ESP32-P4 currently uses a no-radio diagnostic profile, and P4/S31 flight hardware still requires board-specific pin maps and validation.
+- [Protocol, measurements and limitations](REPORT.md)
+- [Build, flash, serial monitor and test commands](BUILD_AND_TEST.md)
+- [Wiring, LEDs and controls](docs/HARDWARE_AND_OPERATIONS.md)
 
-![ESP-Drone](./docs/_static/espdrone_s2_v1_2_2.png)
+The project derives from [Espressif ESP-Drone at commit `9d5a4f8`](https://github.com/espressif/esp-drone/tree/9d5a4f85199ea056f40472b2248e10dcb6988b5c) and retains its [GPL-3.0 license](LICENSE) and source notices. The flight core draws on [Bitcraze Crazyflie](https://github.com/bitcraze/crazyflie-firmware/tree/2021.01). The DSP library derives from [esp32-lin](https://github.com/whyengineer/esp32-lin/tree/6fa39f4c).
 
-For more information, please check the sections below:
-* **Getting Started**: [Getting Started](https://docs.espressif.com/projects/espressif-esp-drone/zh_CN/latest/gettingstarted.html)
-* **Hardware Schematic**：[Hardware](https://docs.espressif.com/projects/espressif-esp-drone/zh_CN/latest/_static/ESP32_S2_Drone_V1_2/SCH_Mainboard_ESP32_S2_Drone_V1_2.pdf)
-* **iOS APP Source code**: [ESP-Drone-iOS](https://github.com/EspressifApps/ESP-Drone-iOS)
-* **Android APP Source code**: [ESP-Drone-Android](https://github.com/EspressifApps/ESP-Drone-Android)
+This history was assembled on November 25, 2026. Both Git date fields use the reconstructed timeline in UTC so GitHub groups the commits under those dates.
 
-### Features
-
-1. Stabilize Mode
-2. Height-hold Mode
-3. Position-hold Mode
-4. APP Control
-5. cfclient support; see https://github.com/leeebo/crazyflie-clients-python
-6. ESP-BOX-3 joystick control through ESP-NOW
-
-Note: to implement Height-hold/Position-hold mode, extension boards are needed. For more information, see Hardware Reference. 
-
-### Third Party Copyrighted Code
-
-Additional third party copyrighted code is included under the following licenses.
-
-| Component | License | Origin |Commit ID |
-| :---:  | :---: | :---: |:---: |
-| core/crazyflie | GPL3.0  |[Crazyflie](https://github.com/bitcraze/crazyflie-firmware/tree/2021.01) |tag_2021_01 b448553|
-| lib/dsp_lib |  | [esp32-lin](https://github.com/whyengineer/esp32-lin/tree/master/components/dsp_lib) |6fa39f4c|
-
-### Support Policy
-
-From December 2022, we will offer limited support on this project, but Pull Request is still welcomed!
-
-### THANKS
-
-1. Thanks to Bitcraze for the great [Crazyflie project](https://www.bitcraze.io/).
-2. Thanks to Espressif for the powerful [ESP-IDF framework](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s2/get-started/index.html).
-3. Thanks to WhyEngineer for the useful [ESP-DSP lib](https://github.com/whyengineer/esp32-lin/tree/master/components/dsp_lib).
+The first commit imports an unchanged snapshot of Espressif ESP-Drone. Espressif, Bitcraze and the upstream authors retain credit for their source. The upstream link above points to their original commit history.

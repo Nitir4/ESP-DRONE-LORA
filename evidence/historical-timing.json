@@ -1,0 +1,75 @@
+{
+  "completed": true,
+  "baseline": {
+    "control_payload_bytes": 8,
+    "control_payload_bits": 64,
+    "control_hz": 19.35128089437008,
+    "control_interval_ms": {
+      "count": 386,
+      "min": 50,
+      "median": 52.0,
+      "p95": 53,
+      "max": 76
+    },
+    "status_rtt_ms": {
+      "count": 95,
+      "min": 23.121,
+      "median": 24.121,
+      "p95": 25.121,
+      "max": 48.121
+    },
+    "gps_rtt_ms": null,
+    "gps_sent": 0,
+    "gps_received": 0,
+    "local_gps_samples": 20,
+    "local_gps_valid_samples": 20,
+    "gps_interval_ms": null
+  },
+  "gps_return_on": {
+    "control_payload_bytes": 8,
+    "control_payload_bits": 64,
+    "control_hz": 19.373247897476972,
+    "control_interval_ms": {
+      "count": 387,
+      "min": 50,
+      "median": 51,
+      "p95": 53,
+      "max": 74
+    },
+    "status_rtt_ms": {
+      "count": 76,
+      "min": 23.094,
+      "median": 24.121,
+      "p95": 31.121,
+      "max": 44.129
+    },
+    "gps_rtt_ms": {
+      "count": 19,
+      "min": 27.142,
+      "median": 28.142,
+      "p95": 41.123,
+      "max": 41.123
+    },
+    "gps_sent": 19,
+    "gps_received": 19,
+    "local_gps_samples": 19,
+    "local_gps_valid_samples": 19,
+    "gps_interval_ms": {
+      "count": 18,
+      "min": 1023,
+      "median": 1029.0,
+      "p95": 1063,
+      "max": 1063
+    }
+  },
+  "airtime_ms_calculated": {
+    "control_8_bytes": 9.024,
+    "gps_18_bytes": 12.864
+  },
+  "timing_definition": "RTT from controller radio TX start to matching reply parse; no cross-board clock subtraction",
+  "timing_firmware_sha256": {
+    "receiver_app": "5ae808eddc25ea18455e3a7787c31f08c00719b85289391defcd3c8101f46699",
+    "controller_app": "1a218eac1b9f0c7eb08ee3b556a031d7f4a6a05d728305acebfa55b255efdc2e"
+  },
+  "provenance": "2026-11-12 historical bench comparison; baseline still read GPS locally. Not a measurement of this new no-GPS binary."
+}

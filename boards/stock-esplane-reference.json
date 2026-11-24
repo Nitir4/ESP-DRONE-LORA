@@ -1,0 +1,11 @@
+{
+  "source": "Espressif esp-drone 9d5a4f85199ea056f40472b2248e10dcb6988b5c / TARGET_ESPLANE_V1",
+  "purpose": "Reference only; these stock LED/IMU pins conflict with the current LoRa SPI wiring.",
+  "mpu_sda": 21,
+  "mpu_scl": 22,
+  "mpu_interrupt": 19,
+  "led_blue": 18,
+  "led_green": 5,
+  "led_red": 23,
+  "motors": [4, 33, 32, 25]
+}

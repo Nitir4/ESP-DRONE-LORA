@@ -30,6 +30,8 @@
 #include "stm32_legacy.h"
 #include "platform.h"
 #include "system.h"
+#include "gps_monitor.h"
+#include "project_status.h"
 #define DEBUG_MODULE "APP_MAIN"
 #include "debug_cf.h"
 
@@ -55,7 +57,11 @@ void app_main()
         while (1);//if  firmware is running on the wrong hardware, Halt
     }
 
+    // Diagnostics run even if the IMU self-test prevents the flight task starting.
+    projectStatusStart();
     /*launch the system task */
     systemLaunch();
+
+    gps_monitor_start();
 
 }

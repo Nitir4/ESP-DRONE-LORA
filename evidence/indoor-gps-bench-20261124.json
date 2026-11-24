@@ -1,0 +1,40 @@
+{
+  "started_at": "2026-11-24T23:57:26.540493+05:30",
+  "test": "Indoor bench, passive serial capture of running firmware",
+  "controller_serial_seen": true,
+  "measurement_window_seconds": 30,
+  "gps_reply_rt_ms": {
+    "count": 28,
+    "min": 26.142,
+    "median": 28.142,
+    "p95": 28.142,
+    "max": 28.161
+  },
+  "status_reply_rt_ms": {
+    "count": 117,
+    "min": 23.09,
+    "median": 24.121,
+    "p95": 25.121,
+    "max": 51.121
+  },
+  "gps_tx_gap_ms": {
+    "count": 28,
+    "min": 1021,
+    "median": 1029.0,
+    "p95": 1067,
+    "max": 1212
+  },
+  "receiver_gps_transmissions": 29,
+  "gps_acks_matched": 28,
+  "gps_status_samples": 30,
+  "gps_valid_data_samples": 30,
+  "gps_fix_samples": 0,
+  "receiver_counter_deltas": {
+    "ok": 563,
+    "crc": 0,
+    "timeouts": 0
+  },
+  "method": "GPS TX gap uses receiver uptime. RTT uses controller LINK_ACK microseconds. GPS delivery observed by matching same sequence within 0.5 s of host capture timestamps, used only to align capture windows.",
+  "control_application_bytes": 8,
+  "gps_reply_application_bytes": 18
+}

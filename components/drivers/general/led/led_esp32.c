@@ -40,6 +40,8 @@ static int led_polarity[] = {
 };
 
 static bool isInit = false;
+uint8_t benchLedLevel[LED_NUM];
+uint32_t benchLedRises[LED_NUM];
 
 //Initialize the green led pin as output
 void ledInit()
@@ -105,6 +107,11 @@ void ledSetAll(void)
 }
 void ledSet(led_t led, bool value)
 {
+#if defined(CONFIG_PROJECT_STATUS_LEDS) && defined(CONFIG_TRANSPORT_LORA)
+    // The project status renderer is the sole GPIO owner. Stock calibration,
+    // battery and link sequences must not overwrite diagnostic meanings.
+    return;
+#endif
     if (led > LED_NUM || led == LED_NUM) {
         return;
     }
@@ -113,11 +120,12 @@ void ledSet(led_t led, bool value)
         value = !value;
     }
 
+    if (value && !benchLedLevel[led]) benchLedRises[led]++;
+    benchLedLevel[led] = value;
+
     if (value) {
         gpio_set_level(led_pin[led], 1);
     } else {
         gpio_set_level(led_pin[led], 0);
     }
 }
-
-
